@@ -3,48 +3,41 @@
 <head>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0"></script>
     <style>
-        body { font-family: monospace; text-align: center; background: white; }
+        body { font-family: monospace; padding: 20px; text-align: center; }
         canvas { border: 1px solid black; background: white; cursor: crosshair; margin: 20px; }
         button { margin: 5px; padding: 8px 20px; cursor: pointer; }
         .result { margin-top: 20px; font-size: 20px; font-weight: bold; }
-        .info { margin-top: 10px; font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
-    <h3>Draw Emoji - AI Predict</h3>
+    <h3>Draw Emoji - AI Model</h3>
     <canvas id="canvas" width="280" height="280"></canvas><br>
-    <button onclick="clearCanvas()">clear</button>
-    <button onclick="predict()">predict</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <button onclick="predict()">Predict</button>
     <div class="result" id="result"></div>
-    <div class="info" id="info">loading model...</div>
+    <div id="info"></div>
 
     <script>
         let model = null;
         const classes = ["cloud", "thumb", "heart", "smiling_horns", "grinning_face"];
-        
-        // LINK RAW GITHUB CỦA MÀY
         const MODEL_URL = 'https://raw.githubusercontent.com/thuanluong31241027504-sketch/app/main/model.json';
         
         async function loadModel() {
+            document.getElementById('info').innerHTML = 'Loading model...';
             try {
-                document.getElementById('info').innerHTML = 'loading model...';
                 model = await tf.loadLayersModel(MODEL_URL);
-                document.getElementById('info').innerHTML = 'model ready!';
-                document.getElementById('result').innerHTML = 'ready';
+                document.getElementById('info').innerHTML = 'Model ready!';
+                document.getElementById('result').innerHTML = 'Draw and click Predict';
             } catch(e) {
-                document.getElementById('info').innerHTML = 'error: ' + e.message;
-                document.getElementById('result').innerHTML = 'model load failed';
+                document.getElementById('info').innerHTML = 'Error: ' + e.message;
                 console.error(e);
             }
         }
         
         async function predict() {
-            if (!model) {
-                document.getElementById('result').innerHTML = 'wait for model...';
-                return;
-            }
+            if (!model) { document.getElementById('result').innerHTML = 'Wait for model...'; return; }
             
-            document.getElementById('info').innerHTML = 'predicting...';
+            document.getElementById('info').innerHTML = 'Predicting...';
             
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = 28;
@@ -55,21 +48,17 @@
             const imgData = tempCtx.getImageData(0, 0, 28, 28);
             const data = imgData.data;
             let input = [];
-            
             for (let i = 0; i < data.length; i += 4) {
                 const gray = (data[i] + data[i+1] + data[i+2]) / 3;
                 input.push(gray / 255.0);
             }
-            
             input = input.map(v => 1 - v);
             
             const tensor = tf.tensor2d([input], [1, 784]);
             const prediction = await model.predict(tensor).data();
             const idx = prediction.indexOf(Math.max(...prediction));
-            const confidence = (prediction[idx] * 100).toFixed(0);
-            
-            document.getElementById('result').innerHTML = `${classes[idx]} (${confidence}%)`;
-            document.getElementById('info').innerHTML = 'done';
+            document.getElementById('result').innerHTML = `${classes[idx]} (${(prediction[idx]*100).toFixed(0)}%)`;
+            document.getElementById('info').innerHTML = 'Done';
         }
         
         const canvas = document.getElementById('canvas');
@@ -101,7 +90,6 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.beginPath();
             document.getElementById('result').innerHTML = '';
-            document.getElementById('info').innerHTML = 'cleared';
         }
         
         loadModel();
